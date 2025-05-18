@@ -2,7 +2,7 @@
 
 ## Overview
 
-Personal (Lupita - For me) AI is an intelligent conversational assistant with expertise in Mexican culture, history, geography, food, and immigration assistance. Built with a modern Flask backend and responsive web interface, Lupita offers a seamless conversational experience powered by local LLM inference.
+Personal (Lupita - Developer name) AI is an intelligent conversational assistant. Built with a modern Flask backend and responsive web interface, peronal AI offers a seamless conversational experience powered by local LLM inference.
 
 ## Features
 
