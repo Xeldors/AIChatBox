@@ -1,7 +1,5 @@
 # Lupita AI: A Multimodal Conversational Assistant
 
-![Lupita AI Logo](https://via.placeholder.com/150x50?text=Lupita+AI)
-
 ## Overview
 
 Lupita AI is an intelligent conversational assistant with expertise in Mexican culture, history, geography, food, and immigration assistance. Built with a modern Flask backend and responsive web interface, Lupita offers a seamless conversational experience powered by local LLM inference.
