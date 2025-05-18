@@ -1,14 +1,11 @@
-# Lupita AI: A Multimodal Conversational Assistant
+# Personal AI: A Multimodal Conversational Assistant
 
 ## Overview
 
-Lupita AI is an intelligent conversational assistant with expertise in Mexican culture, history, geography, food, and immigration assistance. Built with a modern Flask backend and responsive web interface, Lupita offers a seamless conversational experience powered by local LLM inference.
+Personal (Lupita - For me) AI is an intelligent conversational assistant with expertise in Mexican culture, history, geography, food, and immigration assistance. Built with a modern Flask backend and responsive web interface, Lupita offers a seamless conversational experience powered by local LLM inference.
 
 ## Features
 
-- 💬 **Natural Conversation**: Engage in flowing, contextual conversations with a Mexican-American persona
-- 🌮 **Cultural Expertise**: Specialized knowledge in Mexican culture, cuisine, and traditions
-- 📝 **Immigration Assistance**: Help with understanding residency permits and immigration paperwork
 - 💻 **System Administration**: Problem-solving capabilities for technical computer issues
 - 🔄 **Persistent Chat History**: Conversations are stored and maintained across sessions
 - ⚡ **Asynchronous Processing**: Backend uses async tasks for responsive user experience
