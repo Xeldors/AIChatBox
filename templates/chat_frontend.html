@@ -13,6 +13,7 @@
             --light: #f5f5f5;
             --dark: #222222;
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --code-bg: #f6f8fa;
         }
 
         * {
@@ -111,6 +112,23 @@
             padding: 10px 15px;
             border-radius: 10px;
             position: relative;
+            white-space: pre-wrap;
+        }
+
+        .message pre {
+            background-color: var(--code-bg);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+
+        .message code {
+            font-family: monospace;
+            background-color: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 3px;
         }
 
         .user-message {
@@ -252,7 +270,7 @@
                 <div class="white">M</div>
                 <div class="red"></div>
             </div>
-            MexiChat AI Assistant
+            Lupita
         </h1>
         <p>Your expert companion for Mexican culture, history, cuisine, and immigration assistance.</p>
         <button class="start-btn" id="startChatBtn">Go to Chat</button>
@@ -267,14 +285,12 @@
                     <div class="white">M</div>
                     <div class="red"></div>
                 </div>
-                MexiChat AI
+                Lupita AI
             </h1>
         </div>
         
         <div class="model-selector">
-            <button class="model-btn active" data-model="gpt-3.5-turbo">GPT-3.5</button>
-            <button class="model-btn" data-model="gpt-4o-mini">gpt-4o-mini</button>
-            <button class="model-btn" data-model="claude-2">Claude</button>
+            <button class="model-btn active" data-model="Local Llama">Llama Local</button>
         </div>
         
         <div class="chat-container" id="chatContainer">
@@ -299,24 +315,33 @@
             const chatContainer = document.getElementById('chatContainer');
             const modelBtns = document.querySelectorAll('.model-btn');
             
-            let selectedModel = 'gpt-3.5-turbo';
+            let selectedModel = 'Local Llama';
             let chatId = '';
             
             // Start chat button
             startChatBtn.addEventListener('click', function() {
                 // Generate random chat ID using the format from your backend
-                chatId = generateRandomId(28);
-                console.log("Generated Chat ID:", chatId);
-                
-                // Switch from welcome screen to chat
-                welcomeScreen.style.display = 'none';
-                chatApp.style.display = 'flex';
-                
-                // Add initial greeting message
-                addMessage('assistant-message', '¡Hola! How can I help you today with Mexican culture, history, cuisine, or immigration assistance?');
-                
-                // Focus on input
-                messageInput.focus();
+                fetch('/chat_id_api', { method: 'GET' })
+                    .then(response => response.json())
+                    .then(data => {
+                        chatId = data.chat_id;
+                        // Optionally store in sessionStorage
+                        sessionStorage.setItem('chatId', chatId);
+
+                        // Switch from welcome screen to chat
+                        welcomeScreen.style.display = 'none';
+                        chatApp.style.display = 'flex';
+
+                        // Add initial greeting message
+                        addMessage('assistant-message', 'I am Lupita, your spanglish-speaking assistant. How can I help you today?');
+
+                        // Focus on input
+                        messageInput.focus();
+                    })
+                    .catch(error => {
+                        alert('Could not start chat. Please try again.');
+                        console.error(error);
+                    });
             });
             
             // Send message when Enter is pressed
@@ -356,19 +381,54 @@
                 const thinkingId = 'thinking-' + Date.now();
                 addThinking(thinkingId);
                 
-                // Here is where you would send to your backend
+                // Send to backend
                 sendToBackend(message, chatId, selectedModel, thinkingId);
                 
-                // Start polling for the backend response every 10 seconds
+                // Start polling for the backend response
                 startPollingForResponse(chatId, thinkingId);
             }
 
             function startPollingForResponse(chatId, thinkingId) {
-                let pollInterval = 10000; // 10 seconds
-                let polling = true;
-            
-                function poll() {
-                    if (!polling) return;
+                let pollInterval = 5000; // 5 seconds between polls
+                let maxPollTime = 5 * 60 * 1000; // 5 minutes maximum polling time
+                let startTime = Date.now();
+                
+                function checkTaskCompletion() {
+                    // Check if we've exceeded maximum poll time
+                    if (Date.now() - startTime > maxPollTime) {
+                        document.getElementById(thinkingId)?.remove();
+                        addMessage('assistant-message', 'Sorry, the request timed out after 5 minutes. Please try again.');
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.focus();
+                        return;
+                    }
+
+                    fetch('/get_tasks', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        // No task_id needed anymore, backend will use the latest task
+                        body: new URLSearchParams({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.result === 1) {  // Changed from data.status.result to data.result
+                            // Task is completed, get the chat response
+                            getChatResponse();
+                        } else {
+                            // Task is still running, continue polling
+                            setTimeout(checkTaskCompletion, pollInterval);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking task status:', error);
+                        setTimeout(checkTaskCompletion, pollInterval); // Continue polling despite errors
+                    });
+                }
+
+                function getChatResponse() {
                     fetch('/chat_get/' + chatId, {
                         method: 'POST',
                         headers: {
@@ -380,26 +440,24 @@
                     })
                     .then(response => response.json())
                     .then(data => {
-                        // If the output is different from the placeholder, show it and stop polling
-                        if (data.chat_box && data.chat_box !== '¡Estamos pensandon... carajo!') {
-                            document.getElementById(thinkingId)?.remove();
-                            addMessage('assistant-message', data.chat_box);
-                            polling = false;
-                        } else {
-                            // Optionally, update the thinking indicator or do nothing
-                            setTimeout(poll, pollInterval);
-                        }
+                        document.getElementById(thinkingId)?.remove();
+                        addMessage('assistant-message', data.chat_box);
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.focus();
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('Error getting chat response:', error);
                         document.getElementById(thinkingId)?.remove();
-                        addMessage('assistant-message', 'Sorry, there was an error processing your request.');
-                        polling = false;
+                        addMessage('assistant-message', 'Sorry, there was an error retrieving the response.');
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.focus();
                     });
                 }
-            
-                // Start the first poll after 10 seconds
-                setTimeout(poll, pollInterval);
+
+                // Start the polling process
+                setTimeout(checkTaskCompletion, pollInterval);
             }
             
             function addMessage(type, content) {
@@ -441,23 +499,19 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // Remove thinking message
-                    document.getElementById(thinkingId)?.remove();
-        
-                    // Display response from server
-                    addMessage('assistant-message', data.chat_box);
-
-                    // Enable input and send button
-                    messageInput.disabled = false;
-                    sendBtn.disabled = false;
-                    messageInput.focus();
+                    // For immediate responses (if any)
+                    if (data.chat_box && data.chat_box !== "Thinking") {
+                        document.getElementById(thinkingId)?.remove();
+                        addMessage('assistant-message', data.chat_box);
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.focus();
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     document.getElementById(thinkingId)?.remove();
                     addMessage('assistant-message', 'Sorry, there was an error processing your request.');
-
-                    // Enable input and send button
                     messageInput.disabled = false;
                     sendBtn.disabled = false;
                     messageInput.focus();
@@ -478,7 +532,7 @@
                 .then(data => {
                     // Remove thinking message
                     document.getElementById(thinkingId)?.remove();
-        
+    
                     // Display response from server
                     addMessage('assistant-message', data.chat_box);
                 })
