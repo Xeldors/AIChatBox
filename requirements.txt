@@ -1,0 +1,4 @@
+pip install accelerate
+pip install hf_xet
+pip install cuda
+pip install tensorflow
